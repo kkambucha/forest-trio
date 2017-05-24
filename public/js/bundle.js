@@ -68,12 +68,14 @@
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
-window.onload = () => {
+"use strict";
+
+
+window.onload = function () {
 	console.info('It\'s works!');
 };
-
 
 /***/ })
 /******/ ]);
