@@ -1,1 +1,3 @@
-# My project's README
+# Forest trio sampler
+
+npm start

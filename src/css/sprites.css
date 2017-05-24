@@ -1,0 +1,53 @@
+.sprite-bear {
+	background-image: url(bear.png);
+	background-repeat: no-repeat;
+	display: block;
+}
+
+.sprite-bear-sprite1 {
+	width: 181px;
+	height: 258px;
+	background-position: -5px -5px;
+}
+
+.sprite-bear-sprite2 {
+	width: 181px;
+	height: 258px;
+	background-position: -196px -5px;
+}
+
+.sprite-rabbit {
+	background-image: url(spritesheet.png);
+	background-repeat: no-repeat;
+	display: block;
+}
+
+.sprite-rabbit-sprite1 {
+	width: 93px;
+	height: 128px;
+	background-position: -5px -5px;
+}
+
+.sprite-rabbit-sprite2 {
+	width: 93px;
+	height: 128px;
+	background-position: -108px -5px;
+}
+
+.sprite-wolf {
+	background-image: url(spritesheet.png);
+	background-repeat: no-repeat;
+	display: block;
+}
+
+.sprite-wolf-sprite1 {
+	width: 83px;
+	height: 119px;
+	background-position: -5px -5px;
+}
+
+.sprite-wolf-sprite2 {
+	width: 83px;
+	height: 119px;
+	background-position: -98px -5px;
+}

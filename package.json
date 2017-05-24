@@ -1,0 +1,10 @@
+{
+  "name": "forest-trio",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "webpack --config mywebpack.config.js"
+  },
+  "devDependencies": {
+    "path": "^0.12.7"
+  }
+}
