@@ -51,3 +51,83 @@
 	height: 119px;
 	background-position: -98px -5px;
 }
+
+
+.l-app {
+	max-width: 700px;
+	margin: 0 auto;
+}
+.b-sampler {
+	margin: 0 5px;
+	background: pink;
+	overflow: hidden;
+}
+.l-animal-wrapper {
+	display: table;
+	width: 100%;
+}
+.l-animal-wrapper__row {
+	display: table-row;
+}
+.l-animal-wrapper__cell {
+	width: 33.33333333333333%;
+	text-align: center;
+	display: table-cell;
+	vertical-align: bottom;
+}
+.b-animal {
+	overflow: hidden;
+	position: relative;
+	display: inline-block;
+}
+.b-animal.m-bear {
+	height: 134px;
+	width: 96px;
+}
+.b-animal.m-rabbit {
+	width: 51px;
+	height: 69px;
+}
+.b-animal.m-wolf {
+	height: 65px;
+	width: 47px;
+}
+.b-animal__img {
+	overflow: hidden;
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+.b-animal__img.m-bear {
+	background-image: url('../img/bear.png');
+	background-repeat: no-repeat;
+	background-size: cover;
+	display: block;
+	height: 134px;
+	width: 191px;
+}
+.b-animal__img.m-rabbit {
+	background-image: url('../img/rabbit.png');
+	background-repeat: no-repeat;
+	background-size: cover;
+	display: block;
+	height: 69px;
+	width: 103px;
+}
+.b-animal__img.m-wolf {
+	background-image: url('../img/wolf.png');
+	background-repeat: no-repeat;
+	background-size: cover;
+	display: block;
+	height: 65px;
+	width: 93px;
+}
+.b-animal.m-bear.active .b-animal__img {
+	left: -95px;
+}
+.b-animal.m-rabbit.active .b-animal__img {
+	left: -52px;
+}
+.b-animal.m-wolf.active .b-animal__img {
+	left: -46px;
+}
