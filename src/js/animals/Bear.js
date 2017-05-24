@@ -1,9 +1,9 @@
 import Animal from '../basic/Animal';
+import { BearSoundPath } from '../basic/constants';
 
 class Bear extends Animal {
-    constructor() {
-        super();
-        console.log('create bear');
+    constructor(htmlElement) {
+        super(htmlElement, BearSoundPath, false);
     }
 }
 

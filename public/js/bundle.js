@@ -81,6 +81,8 @@ var _Animal2 = __webpack_require__(1);
 
 var _Animal3 = _interopRequireDefault(_Animal2);
 
+var _constants = __webpack_require__(5);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -92,13 +94,10 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 var Bear = function (_Animal) {
     _inherits(Bear, _Animal);
 
-    function Bear() {
+    function Bear(htmlElement) {
         _classCallCheck(this, Bear);
 
-        var _this = _possibleConstructorReturn(this, (Bear.__proto__ || Object.getPrototypeOf(Bear)).call(this));
-
-        console.log('create bear');
-        return _this;
+        return _possibleConstructorReturn(this, (Bear.__proto__ || Object.getPrototypeOf(Bear)).call(this, htmlElement, _constants.BearSoundPath, false));
     }
 
     return Bear;
@@ -122,18 +121,42 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Animal = function () {
-    function Animal() {
+    function Animal(htmlElement, sound, loop) {
         _classCallCheck(this, Animal);
 
-        console.log('create animal');
+        this.htmlElement = htmlElement;
+        this.audio = new Audio(sound);
+        if (loop) {
+            this.audio.loop = true;
+        }
+        this.isPlay = false;
+        this.htmlElement.addEventListener('click', this.togglePlay.bind(this));
     }
 
     _createClass(Animal, [{
         key: 'play',
-        value: function play() {}
+        value: function play() {
+            this.isPlay = true;
+            this.audio.play();
+        }
     }, {
         key: 'stop',
-        value: function stop() {}
+        value: function stop() {
+            this.isPlay = false;
+            this.audio.pause();
+            this.audio.currentTime = 0;
+        }
+    }, {
+        key: 'togglePlay',
+        value: function togglePlay() {
+            if (this.isPlay) {
+                this.htmlElement.classList.remove('active');
+                this.stop();
+            } else {
+                this.htmlElement.classList.add('active');
+                this.play();
+            }
+        }
     }]);
 
     return Animal;
@@ -152,12 +175,121 @@ var _Bear = __webpack_require__(0);
 
 var _Bear2 = _interopRequireDefault(_Bear);
 
+var _Rabbit = __webpack_require__(3);
+
+var _Rabbit2 = _interopRequireDefault(_Rabbit);
+
+var _Wolf = __webpack_require__(4);
+
+var _Wolf2 = _interopRequireDefault(_Wolf);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 window.onload = function () {
-	var bear = new _Bear2.default();
+	var bearElem = document.querySelector('.js-bear-elem'),
+	    rabbitElem = document.querySelector('.js-rabbit-elem'),
+	    wolfElem = document.querySelector('.js-wolf-elem'),
+	    bear = void 0,
+	    rabbit = void 0,
+	    wolf = void 0;
+
+	bear = new _Bear2.default(bearElem);
+	rabbit = new _Rabbit2.default(rabbitElem);
+	wolf = new _Wolf2.default(wolfElem);
 	console.info('It\'s works!');
 };
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _Animal2 = __webpack_require__(1);
+
+var _Animal3 = _interopRequireDefault(_Animal2);
+
+var _constants = __webpack_require__(5);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Rabbit = function (_Animal) {
+    _inherits(Rabbit, _Animal);
+
+    function Rabbit(htmlElement) {
+        _classCallCheck(this, Rabbit);
+
+        return _possibleConstructorReturn(this, (Rabbit.__proto__ || Object.getPrototypeOf(Rabbit)).call(this, htmlElement, _constants.RabbitSoundPath, true));
+    }
+
+    return Rabbit;
+}(_Animal3.default);
+
+exports.default = Rabbit;
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _Animal2 = __webpack_require__(1);
+
+var _Animal3 = _interopRequireDefault(_Animal2);
+
+var _constants = __webpack_require__(5);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Wolf = function (_Animal) {
+    _inherits(Wolf, _Animal);
+
+    function Wolf(htmlElement) {
+        _classCallCheck(this, Wolf);
+
+        return _possibleConstructorReturn(this, (Wolf.__proto__ || Object.getPrototypeOf(Wolf)).call(this, htmlElement, _constants.WolfSoundPath, false));
+    }
+
+    return Wolf;
+}(_Animal3.default);
+
+exports.default = Wolf;
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var BearSoundPath = exports.BearSoundPath = '../public/sounds/bear.wav';
+var RabbitSoundPath = exports.RabbitSoundPath = '../public/sounds/rabbit.wav';
+var WolfSoundPath = exports.WolfSoundPath = '../public/sounds/wolf.wav';
 
 /***/ })
 /******/ ]);
