@@ -1,30 +1,20 @@
+import SoundCreator from '../basic/SoundCreator';
+
 class Animal {
     constructor(htmlElement, sound, loop) {
         this.htmlElement = htmlElement;
-        this.audio = new Audio(sound);
+        // this.htmlElement.addEventListener('click', this.togglePlay.bind(this));
         if (loop) {
-            this.audio.loop = true;
+            this.sound = new SoundCreator(true, sound);
+        } else {
+            this.sound = new SoundCreator(false, sound);
         }
-        this.isPlay = false;
-        this.htmlElement.addEventListener('click', this.togglePlay.bind(this));
     }
     play() {
-        this.isPlay = true;
-        this.audio.play();
+        this.sound.play();
     }
     stop() {
-        this.isPlay = false;
-        this.audio.pause();
-        this.audio.currentTime = 0;
-    }
-    togglePlay() {
-        if (this.isPlay) {
-            this.htmlElement.classList.remove('active');
-            this.stop();
-        } else {
-            this.htmlElement.classList.add('active');
-            this.play();
-        }
+        this.sound.stop();
     }
 }
 

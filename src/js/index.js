@@ -1,17 +1,5 @@
-import Bear from './animals/Bear';
-import Rabbit from './animals/Rabbit';
-import Wolf from './animals/Wolf';
+import App from './basic/App';
 
-window.onload = () => {
-	let bearElem = document.querySelector('.js-bear-elem'),
-		rabbitElem = document.querySelector('.js-rabbit-elem'),
-		wolfElem = document.querySelector('.js-wolf-elem'),
-		bear,
-		rabbit,
-		wolf;
+let app;
 
-	bear = new Bear(bearElem);
-    rabbit = new Rabbit(rabbitElem);
-    wolf = new Wolf(wolfElem);
-	console.info('It\'s works!');
-};
+app = new App();
