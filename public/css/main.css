@@ -23,10 +23,15 @@
 	display: table-cell;
 	vertical-align: bottom;
 }
+.b-animal-wrapper {
+	position: relative;
+	display: inline-block;
+}
 .b-animal {
 	overflow: hidden;
 	position: relative;
 	display: inline-block;
+	cursor: pointer;
 }
 .b-animal.m-bear {
 	height: 134px;
@@ -70,6 +75,9 @@
 	height: 65px;
 	width: 93px;
 }
+.b-animal.active + .b-sound_ring {
+	display: block;
+}
 .b-animal.m-bear.active .b-animal__img {
 	left: -95px;
 }
@@ -111,7 +119,7 @@
 	border-top: 1px dotted #8c8b8b;
 	border-bottom: 1px dotted #fff;
 	width: 50%;
-	margin: 20px auto 15px auto;
+	margin: 15px auto 9px auto;
 }
 .b-volodya {
 	position: absolute;
@@ -128,9 +136,27 @@
 	cursor: default;
 }
 .b-volodya__text {
-	padding: 20px 0;
+	padding: 10px 0;
 	font-family: 'Gochi Hand', cursive;
 	font-size: 40px;
 	text-align: center;
-	line-height: 30px;
+	line-height: 25px;
+}
+.b-sound_ring {
+	border: 3px solid #99ffbb;
+	-webkit-border-radius: 30px;
+	height: 30px;
+	width: 30px;
+	position: absolute;
+	right: -20px;
+	top: -10px;
+	-webkit-animation: pulsate 1s ease-out;
+	-webkit-animation-iteration-count: infinite;
+	opacity: 0.0;
+	display: none;
+}
+@-webkit-keyframes pulsate {
+	0% {-webkit-transform: scale(0.1, 0.1); opacity: 0.0;}
+	50% {opacity: 1.0;}
+	100% {-webkit-transform: scale(1.2, 1.2); opacity: 0.0;}
 }
