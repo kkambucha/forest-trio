@@ -11,7 +11,7 @@ class App {
             rabbit,
             wolf;
 
-        // bear = new Bear(bearElem);
+        bear = new Bear(bearElem);
         // setTimeout(() => {
         //     bear.play();
         // }, 2000);
@@ -22,7 +22,7 @@ class App {
         //     bear.play();
         // }, 7000);
 
-        // rabbit = new Rabbit(rabbitElem);
+        rabbit = new Rabbit(rabbitElem);
         // setTimeout(() => {
         //     rabbit.play();
         // }, 2000);
@@ -42,7 +42,7 @@ class App {
         //     rabbit.stop();
         // }, 18000);
 
-        // wolf = new Wolf(wolfElem);
+        wolf = new Wolf(wolfElem);
     };
 }
 

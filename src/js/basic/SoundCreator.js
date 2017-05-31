@@ -1,7 +1,11 @@
-class SoundCreator {
+import { EventEmitter } from 'events';
+
+class SoundCreator extends EventEmitter {
     constructor(loop, soundUrl) {
+        super();
         this.loop = loop;
         this.isInit = false;
+        this.isPlayed = false;
         this.audioContext = new AudioContext();
         this.source = this.audioContext.createBufferSource();
         this.source.connect(this.audioContext.destination);
@@ -43,23 +47,34 @@ class SoundCreator {
     }
     play() {
         console.log('play');
+        this.emit('startPlay');
         if(this.isInit) {
             this.source.start(0);
+            this.source.addEventListener('ended', () => {
+                this.isPlayed = false;
+                this.emit('stopPlay');
+            });
             if(!this.loop) {
                 this.reInitAudio(false);
             }
+            this.isPlayed = true;
         }
     }
     stop() {
-        console.log('stop');
-
-        if(this.isInit) {
+        if(this.isInit && this.isPlayed) {
             if(this.loop) {
                 this.reInitAudio(true);
             } else {
-                this.source.stop(0);
+                this.reInitAudio(false);
             }
         }
+        this.isPlayed = false;
+    }
+    getIsPlayed() {
+        return this.isPlayed;
+    }
+    getIsLoop() {
+        return this.loop;
     }
 }
 

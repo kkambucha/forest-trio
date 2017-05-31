@@ -1,11 +1,12 @@
 .l-app {
 	max-width: 700px;
 	margin: 0 auto;
-	display: none;
+	padding: 0 20px;
+	/*display: none;*/
 }
 .b-sampler {
 	margin: 0 5px;
-	background: pink;
+	padding: 40px 0;
 	overflow: hidden;
 }
 .l-animal-wrapper {
@@ -76,4 +77,39 @@
 }
 .b-animal.m-wolf.active .b-animal__img {
 	left: -46px;
+}
+.b-header {
+	font-family: 'Gochi Hand', cursive;
+	text-align: center;
+	margin: 40px 0 20px 0;
+}
+.b-header__title {
+	font-size: 60px;
+	display: block;
+	width: 100%;
+	margin: 0;
+	line-height: 40px;
+}
+.b-header__subtitle {
+	font-size: 40px;
+	display: block;
+	width: 100%;
+	margin: 0;
+}
+.b-controls {
+
+}
+.b-controls__list {
+
+}
+.b-controls__item {
+
+}
+.b-volodya {
+
+}
+.b-volodya__text {
+	font-family: 'Gochi Hand', cursive;
+	font-size: 40px;
+	text-align: center;
 }
