@@ -7,7 +7,8 @@
 .b-sampler {
 	margin: 0 5px;
 	padding: 40px 0;
-	overflow: hidden;
+	overflow: visible;
+	position: relative;
 }
 .l-animal-wrapper {
 	display: table;
@@ -97,19 +98,39 @@
 	margin: 0;
 }
 .b-controls {
-
-}
-.b-controls__list {
-
+	padding: 30px 0;
+	height: 195px;
 }
 .b-controls__item {
-
+	overflow: hidden;
+}
+.b-controls__item__label {
+	font-family: 'Gochi Hand', cursive;
+}
+.b-controls__hr {
+	border-top: 1px dotted #8c8b8b;
+	border-bottom: 1px dotted #fff;
+	width: 50%;
+	margin: 20px auto 15px auto;
 }
 .b-volodya {
-
+	position: absolute;
+	right: 0;
+	top: -160px;
+	transform: rotate(-55deg);
+	transition: opacity 1s linear;
+	opacity: 1;
+}
+.b-volodya.unactive {
+	opacity: 0;
+}
+.b-volodya.unactive input {
+	cursor: default;
 }
 .b-volodya__text {
+	padding: 20px 0;
 	font-family: 'Gochi Hand', cursive;
 	font-size: 40px;
 	text-align: center;
+	line-height: 30px;
 }
