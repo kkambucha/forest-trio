@@ -17,39 +17,12 @@ class App {
             sound: '../public/sounds/bear.wav',
             loop: false
         });
-        // setTimeout(() => {
-        //     bear.play();
-        // }, 2000);
-        // setTimeout(() => {
-        //     bear.play();
-        // }, 5000);
-        // setTimeout(() => {
-        //     bear.play();
-        // }, 7000);
 
         rabbit = new Animal({
             htmlElement: rabbitElem,
             sound: '../public/sounds/rabbit.wav',
             loop: true
         });
-        // setTimeout(() => {
-        //     rabbit.play();
-        // }, 2000);
-        // setTimeout(() => {
-        //     rabbit.stop();
-        // }, 5000);
-        // setTimeout(() => {
-        //     rabbit.play();
-        // }, 7000);
-        // setTimeout(() => {
-        //     rabbit.stop();
-        // }, 10000);
-        // setTimeout(() => {
-        //     rabbit.play();
-        // }, 13000);
-        // setTimeout(() => {
-        //     rabbit.stop();
-        // }, 18000);
 
         wolf = new Animal({
             htmlElement: wolfElem,
