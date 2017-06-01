@@ -96,6 +96,7 @@
 .switch.demo4 {
 	width: 150px;
 	height: 150px;
+	cursor: pointer;
 }
 
 .switch.demo4 label {

@@ -1,8 +1,10 @@
 import { EventEmitter } from 'events';
+import Clock from 'dilla';
 
 class SoundCreator extends EventEmitter {
     constructor(loop, soundUrl) {
         super();
+
         this.loop = loop;
         this.isInit = false;
         this.isPlayed = false;
@@ -11,6 +13,33 @@ class SoundCreator extends EventEmitter {
         this.source.connect(this.audioContext.destination);
         this.oldBuffer = null;
         this.newSource = null;
+        this.audioOptions = {
+            'tempo': 140,
+            'beatsPerBar': 4,
+            'loopLength': 2
+        };
+        this.clock = new Clock(this.audioContext, this.audioOptions);
+        this.step = 0;
+
+        this.clock.set('metronome', [
+            {
+                'position': '*.1.01',
+                'freq': 440,
+                'duration': 15
+            },
+            [
+                '*.>1.01',
+                {
+                    'freq': 330, 'duration': 15
+                }
+            ]
+        ]);
+
+        this.clock.on('step', (step) => {
+            if(step.event === 'start') {
+                this.loopStep();
+            }
+        });
 
         this.getAudio(soundUrl, this.initAudio.bind(this));
     }
@@ -46,7 +75,6 @@ class SoundCreator extends EventEmitter {
         this.source.loop = this.loop;
     }
     play() {
-        console.log('play');
         this.emit('startPlay');
         if(this.isInit) {
             this.source.start(0);
@@ -56,7 +84,10 @@ class SoundCreator extends EventEmitter {
             });
             if(!this.loop) {
                 this.reInitAudio(false);
+            } else {
+                this.clock.start();
             }
+
             this.isPlayed = true;
         }
     }
@@ -64,11 +95,23 @@ class SoundCreator extends EventEmitter {
         if(this.isInit && this.isPlayed) {
             if(this.loop) {
                 this.reInitAudio(true);
+                this.step = 0;
+                this.clock.stop();
             } else {
                 this.reInitAudio(false);
             }
         }
         this.isPlayed = false;
+    }
+    loopStep() {
+        if (this.step === 8) {
+            this.emit('step');
+            this.step = 0;
+        }
+        this.step++;
+    }
+    getLoopStep() {
+        return this.step;
     }
     getIsPlayed() {
         return this.isPlayed;

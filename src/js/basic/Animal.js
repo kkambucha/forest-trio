@@ -1,22 +1,23 @@
 import SoundCreator from '../basic/SoundCreator';
+import { EventEmitter } from 'events';
 
-class Animal {
-    constructor(htmlElement, sound, loop) {
-        this.htmlElement = htmlElement;
+class Animal extends EventEmitter {
+    constructor(config) {
+        super();
+        this.htmlElement = config.htmlElement;
 
         this.htmlElement.addEventListener('click', () => {
             this.togglePlay();
         });
-        if (loop) {
-            this.sound = new SoundCreator(true, sound);
-        } else {
-            this.sound = new SoundCreator(false, sound);
-        }
+
+        this.sound = new SoundCreator(config.loop, config.sound);
+
         this.sound.on('startPlay', () => {
             this.htmlElement.classList.add('active');
         });
         this.sound.on('stopPlay', () => {
             this.htmlElement.classList.remove('active');
+            this.emit('volodyastoy');
         });
     }
     play() {
@@ -33,7 +34,6 @@ class Animal {
                 this.play();
             }
         } else {
-            console.log();
             if (this.sound.getIsPlayed()) {
                 this.stop();
                 this.play();
@@ -41,6 +41,12 @@ class Animal {
                 this.play();
             }
         }
+    }
+    isPlayed() {
+        return this.sound.getIsPlayed();
+    }
+    getSound() {
+        return this.sound;
     }
 }
 
