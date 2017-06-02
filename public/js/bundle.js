@@ -68,314 +68,6 @@
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports) {
-
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-function EventEmitter() {
-  this._events = this._events || {};
-  this._maxListeners = this._maxListeners || undefined;
-}
-module.exports = EventEmitter;
-
-// Backwards-compat with node 0.10.x
-EventEmitter.EventEmitter = EventEmitter;
-
-EventEmitter.prototype._events = undefined;
-EventEmitter.prototype._maxListeners = undefined;
-
-// By default EventEmitters will print a warning if more than 10 listeners are
-// added to it. This is a useful default which helps finding memory leaks.
-EventEmitter.defaultMaxListeners = 10;
-
-// Obviously not all Emitters should be limited to 10. This function allows
-// that to be increased. Set to zero for unlimited.
-EventEmitter.prototype.setMaxListeners = function(n) {
-  if (!isNumber(n) || n < 0 || isNaN(n))
-    throw TypeError('n must be a positive number');
-  this._maxListeners = n;
-  return this;
-};
-
-EventEmitter.prototype.emit = function(type) {
-  var er, handler, len, args, i, listeners;
-
-  if (!this._events)
-    this._events = {};
-
-  // If there is no 'error' event listener then throw.
-  if (type === 'error') {
-    if (!this._events.error ||
-        (isObject(this._events.error) && !this._events.error.length)) {
-      er = arguments[1];
-      if (er instanceof Error) {
-        throw er; // Unhandled 'error' event
-      } else {
-        // At least give some kind of context to the user
-        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
-        err.context = er;
-        throw err;
-      }
-    }
-  }
-
-  handler = this._events[type];
-
-  if (isUndefined(handler))
-    return false;
-
-  if (isFunction(handler)) {
-    switch (arguments.length) {
-      // fast cases
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      // slower
-      default:
-        args = Array.prototype.slice.call(arguments, 1);
-        handler.apply(this, args);
-    }
-  } else if (isObject(handler)) {
-    args = Array.prototype.slice.call(arguments, 1);
-    listeners = handler.slice();
-    len = listeners.length;
-    for (i = 0; i < len; i++)
-      listeners[i].apply(this, args);
-  }
-
-  return true;
-};
-
-EventEmitter.prototype.addListener = function(type, listener) {
-  var m;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events)
-    this._events = {};
-
-  // To avoid recursion in the case that type === "newListener"! Before
-  // adding it to the listeners, first emit "newListener".
-  if (this._events.newListener)
-    this.emit('newListener', type,
-              isFunction(listener.listener) ?
-              listener.listener : listener);
-
-  if (!this._events[type])
-    // Optimize the case of one listener. Don't need the extra array object.
-    this._events[type] = listener;
-  else if (isObject(this._events[type]))
-    // If we've already got an array, just append.
-    this._events[type].push(listener);
-  else
-    // Adding the second element, need to change to array.
-    this._events[type] = [this._events[type], listener];
-
-  // Check for listener leak
-  if (isObject(this._events[type]) && !this._events[type].warned) {
-    if (!isUndefined(this._maxListeners)) {
-      m = this._maxListeners;
-    } else {
-      m = EventEmitter.defaultMaxListeners;
-    }
-
-    if (m && m > 0 && this._events[type].length > m) {
-      this._events[type].warned = true;
-      console.error('(node) warning: possible EventEmitter memory ' +
-                    'leak detected. %d listeners added. ' +
-                    'Use emitter.setMaxListeners() to increase limit.',
-                    this._events[type].length);
-      if (typeof console.trace === 'function') {
-        // not supported in IE 10
-        console.trace();
-      }
-    }
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-EventEmitter.prototype.once = function(type, listener) {
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  var fired = false;
-
-  function g() {
-    this.removeListener(type, g);
-
-    if (!fired) {
-      fired = true;
-      listener.apply(this, arguments);
-    }
-  }
-
-  g.listener = listener;
-  this.on(type, g);
-
-  return this;
-};
-
-// emits a 'removeListener' event iff the listener was removed
-EventEmitter.prototype.removeListener = function(type, listener) {
-  var list, position, length, i;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events || !this._events[type])
-    return this;
-
-  list = this._events[type];
-  length = list.length;
-  position = -1;
-
-  if (list === listener ||
-      (isFunction(list.listener) && list.listener === listener)) {
-    delete this._events[type];
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-
-  } else if (isObject(list)) {
-    for (i = length; i-- > 0;) {
-      if (list[i] === listener ||
-          (list[i].listener && list[i].listener === listener)) {
-        position = i;
-        break;
-      }
-    }
-
-    if (position < 0)
-      return this;
-
-    if (list.length === 1) {
-      list.length = 0;
-      delete this._events[type];
-    } else {
-      list.splice(position, 1);
-    }
-
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.removeAllListeners = function(type) {
-  var key, listeners;
-
-  if (!this._events)
-    return this;
-
-  // not listening for removeListener, no need to emit
-  if (!this._events.removeListener) {
-    if (arguments.length === 0)
-      this._events = {};
-    else if (this._events[type])
-      delete this._events[type];
-    return this;
-  }
-
-  // emit removeListener for all listeners on all events
-  if (arguments.length === 0) {
-    for (key in this._events) {
-      if (key === 'removeListener') continue;
-      this.removeAllListeners(key);
-    }
-    this.removeAllListeners('removeListener');
-    this._events = {};
-    return this;
-  }
-
-  listeners = this._events[type];
-
-  if (isFunction(listeners)) {
-    this.removeListener(type, listeners);
-  } else if (listeners) {
-    // LIFO order
-    while (listeners.length)
-      this.removeListener(type, listeners[listeners.length - 1]);
-  }
-  delete this._events[type];
-
-  return this;
-};
-
-EventEmitter.prototype.listeners = function(type) {
-  var ret;
-  if (!this._events || !this._events[type])
-    ret = [];
-  else if (isFunction(this._events[type]))
-    ret = [this._events[type]];
-  else
-    ret = this._events[type].slice();
-  return ret;
-};
-
-EventEmitter.prototype.listenerCount = function(type) {
-  if (this._events) {
-    var evlistener = this._events[type];
-
-    if (isFunction(evlistener))
-      return 1;
-    else if (evlistener)
-      return evlistener.length;
-  }
-  return 0;
-};
-
-EventEmitter.listenerCount = function(emitter, type) {
-  return emitter.listenerCount(type);
-};
-
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
-
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
-
-function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
-}
-
-function isUndefined(arg) {
-  return arg === void 0;
-}
-
-
-/***/ }),
-/* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -407,7 +99,7 @@ var util = __webpack_require__(5);
 util.inherits = __webpack_require__(3);
 /*</replacement>*/
 
-var Readable = __webpack_require__(16);
+var Readable = __webpack_require__(17);
 var Writable = __webpack_require__(10);
 
 util.inherits(Duplex, Readable);
@@ -456,7 +148,7 @@ function forEach(xs, f) {
 }
 
 /***/ }),
-/* 2 */
+/* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -472,7 +164,7 @@ function forEach(xs, f) {
 
 var base64 = __webpack_require__(25)
 var ieee754 = __webpack_require__(33)
-var isArray = __webpack_require__(14)
+var isArray = __webpack_require__(15)
 
 exports.Buffer = Buffer
 exports.SlowBuffer = SlowBuffer
@@ -2253,6 +1945,314 @@ function isnan (val) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ }),
+/* 2 */
+/***/ (function(module, exports) {
+
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
+
+  if (!this._events)
+    this._events = {};
+
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      } else {
+        // At least give some kind of context to the user
+        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
+        err.context = er;
+        throw err;
+      }
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        args = Array.prototype.slice.call(arguments, 1);
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    args = Array.prototype.slice.call(arguments, 1);
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else if (listeners) {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.prototype.listenerCount = function(type) {
+  if (this._events) {
+    var evlistener = this._events[type];
+
+    if (isFunction(evlistener))
+      return 1;
+    else if (evlistener)
+      return evlistener.length;
+  }
+  return 0;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  return emitter.listenerCount(type);
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+
+/***/ }),
 /* 3 */
 /***/ (function(module, exports) {
 
@@ -2420,7 +2420,7 @@ function objectToString(o) {
   return Object.prototype.toString.call(o);
 }
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2).Buffer))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ }),
 /* 6 */
@@ -2619,7 +2619,7 @@ process.umask = function() { return 0; };
 "use strict";
 /* WEBPACK VAR INJECTION */(function(global) {
 
-var buffer = __webpack_require__(2);
+var buffer = __webpack_require__(1);
 var Buffer = buffer.Buffer;
 var SlowBuffer = buffer.SlowBuffer;
 var MAX_LEN = buffer.kMaxLength || 2147483647;
@@ -2990,10 +2990,10 @@ var internalUtil = {
 /*</replacement>*/
 
 /*<replacement>*/
-var Stream = __webpack_require__(18);
+var Stream = __webpack_require__(19);
 /*</replacement>*/
 
-var Buffer = __webpack_require__(2).Buffer;
+var Buffer = __webpack_require__(1).Buffer;
 /*<replacement>*/
 var bufferShim = __webpack_require__(7);
 /*</replacement>*/
@@ -3010,7 +3010,7 @@ function WriteReq(chunk, encoding, cb) {
 }
 
 function WritableState(options, stream) {
-  Duplex = Duplex || __webpack_require__(1);
+  Duplex = Duplex || __webpack_require__(0);
 
   options = options || {};
 
@@ -3144,7 +3144,7 @@ if (typeof Symbol === 'function' && Symbol.hasInstance && typeof Function.protot
 }
 
 function Writable(options) {
-  Duplex = Duplex || __webpack_require__(1);
+  Duplex = Duplex || __webpack_require__(0);
 
   // Writable ctor is applied to Duplexes, too.
   // `realHasInstance` is necessary because using plain `instanceof`
@@ -3506,12 +3506,12 @@ function CorkedRequest(state) {
 /* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(16);
+exports = module.exports = __webpack_require__(17);
 exports.Stream = exports;
 exports.Readable = exports;
 exports.Writable = __webpack_require__(10);
-exports.Duplex = __webpack_require__(1);
-exports.Transform = __webpack_require__(17);
+exports.Duplex = __webpack_require__(0);
+exports.Transform = __webpack_require__(18);
 exports.PassThrough = __webpack_require__(36);
 
 
@@ -4110,6 +4110,105 @@ function hasOwnProperty(obj, prop) {
 
 /***/ }),
 /* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _SoundCreator = __webpack_require__(22);
+
+var _SoundCreator2 = _interopRequireDefault(_SoundCreator);
+
+var _events = __webpack_require__(2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Animal = function (_EventEmitter) {
+    _inherits(Animal, _EventEmitter);
+
+    function Animal(config) {
+        _classCallCheck(this, Animal);
+
+        var _this = _possibleConstructorReturn(this, (Animal.__proto__ || Object.getPrototypeOf(Animal)).call(this));
+
+        _this.htmlElement = config.htmlElement;
+
+        if (typeof window.ontouchstart === 'undefined') {
+            _this.htmlElement.addEventListener('click', _this.togglePlay.bind(_this));
+        } else {
+            _this.htmlElement.addEventListener('touchstart', _this.togglePlay.bind(_this));
+        }
+
+        _this.sound = new _SoundCreator2.default(config.loop, config.sound);
+
+        _this.sound.on('stopPlay', function () {
+            _this.htmlElement.classList.remove('active');
+            _this.emit('volodyastoy');
+        });
+        return _this;
+    }
+
+    _createClass(Animal, [{
+        key: 'play',
+        value: function play() {
+            this.sound.play();
+            this.htmlElement.classList.add('active');
+        }
+    }, {
+        key: 'stop',
+        value: function stop() {
+            this.sound.stop();
+            this.htmlElement.classList.remove('active');
+        }
+    }, {
+        key: 'togglePlay',
+        value: function togglePlay() {
+            if (this.sound.getIsLoop()) {
+                if (this.sound.getIsPlayed()) {
+                    this.stop();
+                } else {
+                    this.play();
+                }
+            } else {
+                if (this.sound.getIsPlayed()) {
+                    this.stop();
+                    this.play();
+                } else {
+                    this.play();
+                }
+            }
+        }
+    }, {
+        key: 'isPlayed',
+        value: function isPlayed() {
+            return this.sound.getIsPlayed();
+        }
+    }, {
+        key: 'getSound',
+        value: function getSound() {
+            return this.sound;
+        }
+    }]);
+
+    return Animal;
+}(_events.EventEmitter);
+
+exports.default = Animal;
+
+/***/ }),
+/* 14 */
 /***/ (function(module, exports) {
 
 var checkValid = {
@@ -4136,7 +4235,7 @@ module.exports = checkValid;
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports) {
 
 var toString = {}.toString;
@@ -4147,7 +4246,7 @@ module.exports = Array.isArray || function (arr) {
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -4171,7 +4270,7 @@ module.exports = Array.isArray || function (arr) {
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-var Buffer = __webpack_require__(2).Buffer;
+var Buffer = __webpack_require__(1).Buffer;
 
 var isBufferEncoding = Buffer.isEncoding
   || function(encoding) {
@@ -4374,7 +4473,7 @@ function base64DetectIncompleteChar(buffer) {
 
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4387,7 +4486,7 @@ var processNextTick = __webpack_require__(9);
 /*</replacement>*/
 
 /*<replacement>*/
-var isArray = __webpack_require__(14);
+var isArray = __webpack_require__(15);
 /*</replacement>*/
 
 /*<replacement>*/
@@ -4397,7 +4496,7 @@ var Duplex;
 Readable.ReadableState = ReadableState;
 
 /*<replacement>*/
-var EE = __webpack_require__(0).EventEmitter;
+var EE = __webpack_require__(2).EventEmitter;
 
 var EElistenerCount = function (emitter, type) {
   return emitter.listeners(type).length;
@@ -4405,10 +4504,10 @@ var EElistenerCount = function (emitter, type) {
 /*</replacement>*/
 
 /*<replacement>*/
-var Stream = __webpack_require__(18);
+var Stream = __webpack_require__(19);
 /*</replacement>*/
 
-var Buffer = __webpack_require__(2).Buffer;
+var Buffer = __webpack_require__(1).Buffer;
 /*<replacement>*/
 var bufferShim = __webpack_require__(7);
 /*</replacement>*/
@@ -4450,7 +4549,7 @@ function prependListener(emitter, event, fn) {
 }
 
 function ReadableState(options, stream) {
-  Duplex = Duplex || __webpack_require__(1);
+  Duplex = Duplex || __webpack_require__(0);
 
   options = options || {};
 
@@ -4512,14 +4611,14 @@ function ReadableState(options, stream) {
   this.decoder = null;
   this.encoding = null;
   if (options.encoding) {
-    if (!StringDecoder) StringDecoder = __webpack_require__(15).StringDecoder;
+    if (!StringDecoder) StringDecoder = __webpack_require__(16).StringDecoder;
     this.decoder = new StringDecoder(options.encoding);
     this.encoding = options.encoding;
   }
 }
 
 function Readable(options) {
-  Duplex = Duplex || __webpack_require__(1);
+  Duplex = Duplex || __webpack_require__(0);
 
   if (!(this instanceof Readable)) return new Readable(options);
 
@@ -4622,7 +4721,7 @@ function needMoreData(state) {
 
 // backwards compatibility.
 Readable.prototype.setEncoding = function (enc) {
-  if (!StringDecoder) StringDecoder = __webpack_require__(15).StringDecoder;
+  if (!StringDecoder) StringDecoder = __webpack_require__(16).StringDecoder;
   this._readableState.decoder = new StringDecoder(enc);
   this._readableState.encoding = enc;
   return this;
@@ -5316,7 +5415,7 @@ function indexOf(xs, x) {
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6)))
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5366,7 +5465,7 @@ function indexOf(xs, x) {
 
 module.exports = Transform;
 
-var Duplex = __webpack_require__(1);
+var Duplex = __webpack_require__(0);
 
 /*<replacement>*/
 var util = __webpack_require__(5);
@@ -5504,14 +5603,14 @@ function done(stream, er, data) {
 }
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(0).EventEmitter;
+module.exports = __webpack_require__(2).EventEmitter;
 
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -5537,7 +5636,7 @@ module.exports = __webpack_require__(0).EventEmitter;
 
 module.exports = Stream;
 
-var EE = __webpack_require__(0).EventEmitter;
+var EE = __webpack_require__(2).EventEmitter;
 var inherits = __webpack_require__(3);
 
 inherits(Stream, EE);
@@ -5644,7 +5743,7 @@ Stream.prototype.pipe = function(dest, options) {
 
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5654,11 +5753,11 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _Animal = __webpack_require__(21);
+var _Animal = __webpack_require__(13);
 
 var _Animal2 = _interopRequireDefault(_Animal);
 
-var _Volodya = __webpack_require__(47);
+var _Volodya = __webpack_require__(23);
 
 var _Volodya2 = _interopRequireDefault(_Volodya);
 
@@ -5666,7 +5765,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var App = function App() {
+var App = function App(genre) {
     _classCallCheck(this, App);
 
     var bearElem = document.querySelector('.js-bear-elem'),
@@ -5683,39 +5782,12 @@ var App = function App() {
         sound: '../public/sounds/bear.wav',
         loop: false
     });
-    // setTimeout(() => {
-    //     bear.play();
-    // }, 2000);
-    // setTimeout(() => {
-    //     bear.play();
-    // }, 5000);
-    // setTimeout(() => {
-    //     bear.play();
-    // }, 7000);
 
     rabbit = new _Animal2.default({
         htmlElement: rabbitElem,
         sound: '../public/sounds/rabbit.wav',
         loop: true
     });
-    // setTimeout(() => {
-    //     rabbit.play();
-    // }, 2000);
-    // setTimeout(() => {
-    //     rabbit.stop();
-    // }, 5000);
-    // setTimeout(() => {
-    //     rabbit.play();
-    // }, 7000);
-    // setTimeout(() => {
-    //     rabbit.stop();
-    // }, 10000);
-    // setTimeout(() => {
-    //     rabbit.play();
-    // }, 13000);
-    // setTimeout(() => {
-    //     rabbit.stop();
-    // }, 18000);
 
     wolf = new _Animal2.default({
         htmlElement: wolfElem,
@@ -5725,7 +5797,7 @@ var App = function App() {
 
     volodya = new _Volodya2.default({
         htmlElement: volodyaElem,
-        sound: '../public/sounds/beat.wav',
+        sound: '../public/sounds/' + genre + '.wav',
         loop: true,
         methronome: rabbit
     });
@@ -5741,104 +5813,6 @@ var App = function App() {
 exports.default = App;
 
 /***/ }),
-/* 21 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _SoundCreator = __webpack_require__(22);
-
-var _SoundCreator2 = _interopRequireDefault(_SoundCreator);
-
-var _events = __webpack_require__(0);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Animal = function (_EventEmitter) {
-    _inherits(Animal, _EventEmitter);
-
-    function Animal(config) {
-        _classCallCheck(this, Animal);
-
-        var _this = _possibleConstructorReturn(this, (Animal.__proto__ || Object.getPrototypeOf(Animal)).call(this));
-
-        _this.htmlElement = config.htmlElement;
-
-        _this.htmlElement.addEventListener('click', function () {
-            _this.togglePlay();
-        });
-
-        _this.sound = new _SoundCreator2.default(config.loop, config.sound);
-
-        _this.sound.on('startPlay', function () {
-            _this.htmlElement.classList.add('active');
-        });
-        _this.sound.on('stopPlay', function () {
-            _this.htmlElement.classList.remove('active');
-            _this.emit('volodyastoy');
-        });
-        return _this;
-    }
-
-    _createClass(Animal, [{
-        key: 'play',
-        value: function play() {
-            this.sound.play();
-        }
-    }, {
-        key: 'stop',
-        value: function stop() {
-            this.sound.stop();
-        }
-    }, {
-        key: 'togglePlay',
-        value: function togglePlay() {
-            if (this.sound.getIsLoop()) {
-                if (this.sound.getIsPlayed()) {
-                    this.stop();
-                } else {
-                    this.play();
-                }
-            } else {
-                if (this.sound.getIsPlayed()) {
-                    this.stop();
-                    this.play();
-                } else {
-                    this.play();
-                }
-            }
-        }
-    }, {
-        key: 'isPlayed',
-        value: function isPlayed() {
-            return this.sound.getIsPlayed();
-        }
-    }, {
-        key: 'getSound',
-        value: function getSound() {
-            return this.sound;
-        }
-    }]);
-
-    return Animal;
-}(_events.EventEmitter);
-
-exports.default = Animal;
-
-/***/ }),
 /* 22 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -5851,7 +5825,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _events = __webpack_require__(0);
+var _events = __webpack_require__(2);
 
 var _dilla = __webpack_require__(27);
 
@@ -5876,7 +5850,7 @@ var SoundCreator = function (_EventEmitter) {
         _this.loop = loop;
         _this.isInit = false;
         _this.isPlayed = false;
-        _this.audioContext = new AudioContext();
+        _this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         _this.source = _this.audioContext.createBufferSource();
         _this.source.connect(_this.audioContext.destination);
         _this.oldBuffer = null;
@@ -5954,10 +5928,10 @@ var SoundCreator = function (_EventEmitter) {
             this.emit('startPlay');
             if (this.isInit) {
                 this.source.start(0);
-                this.source.addEventListener('ended', function () {
+                this.source.onended = function () {
                     _this3.isPlayed = false;
                     _this3.emit('stopPlay');
-                });
+                };
                 if (!this.loop) {
                     this.reInitAudio(false);
                 } else {
@@ -6013,22 +5987,126 @@ var SoundCreator = function (_EventEmitter) {
 exports.default = SoundCreator;
 
 /***/ }),
-/* 23 */,
+/* 23 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Animal2 = __webpack_require__(13);
+
+var _Animal3 = _interopRequireDefault(_Animal2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Volodya = function (_Animal) {
+    _inherits(Volodya, _Animal);
+
+    function Volodya(config) {
+        _classCallCheck(this, Volodya);
+
+        var _this = _possibleConstructorReturn(this, (Volodya.__proto__ || Object.getPrototypeOf(Volodya)).call(this, config));
+
+        _this.volodyaActive = false;
+        _this.methronomeObj = config.methronome;
+        _this.methronomeSound = _this.methronomeObj.getSound();
+        _this.methronomeObj.on('volodyastoy', _this.stop.bind(_this));
+        return _this;
+    }
+
+    _createClass(Volodya, [{
+        key: 'play',
+        value: function play() {
+            var _this2 = this;
+
+            if (this.methronomeObj.isPlayed()) {
+                this.methronomeSound.on('step', function () {
+                    if (!_this2.volodyaActive && _this2.htmlElement.checked) {
+                        _this2.sound.play();
+                        _this2.volodyaActive = true;
+                        _this2.emit('start');
+                    }
+                });
+            } else {
+                this.htmlElement.checked = false;
+            }
+        }
+    }, {
+        key: 'stop',
+        value: function stop() {
+            this.volodyaActive = false;
+            this.htmlElement.checked = false;
+            this.methronomeSound.removeListener('step', function () {
+                return false;
+            });
+            this.sound.stop();
+            this.emit('stop');
+        }
+    }]);
+
+    return Volodya;
+}(_Animal3.default);
+
+exports.default = Volodya;
+
+/***/ }),
 /* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-var _App = __webpack_require__(20);
+var _App = __webpack_require__(21);
 
 var _App2 = _interopRequireDefault(_App);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var app = void 0;
+var app = void 0,
+    modal = void 0,
+    modalBtn = void 0,
+    appElem = void 0,
+    modalRadioElems = void 0,
+    selectedGenre = void 0;
 
-app = new _App2.default();
+modal = document.getElementById('myModal');
+modalBtn = document.getElementsByClassName('modal-button')[0];
+appElem = document.getElementsByClassName('l-app')[0];
+
+window.onclick = function (event) {
+    if (event.target === modal) {
+        modal.style.display = "none";
+    }
+};
+
+modal.style.display = "block";
+
+modalBtn.onclick = function () {
+    modalRadioElems = document.querySelectorAll('.modal-radio');
+
+    for (var i = 0; i < modalRadioElems.length; i++) {
+        if (modalRadioElems[i].checked) {
+            selectedGenre = modalRadioElems[i].value;
+        }
+    }
+
+    modal.style.display = "none";
+    appElem.style.display = "block";
+    console.log(selectedGenre);
+    app = new _App2.default(selectedGenre);
+};
 
 /***/ }),
 /* 25 */
@@ -6322,14 +6400,14 @@ module.exports = expressions;
 /* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var events = __webpack_require__(0);
+var events = __webpack_require__(2);
 var inherits = __webpack_require__(12).inherits;
 var bopper = __webpack_require__(29);
 var ditty = __webpack_require__(30);
 var expr = __webpack_require__(26);
 var memoize = __webpack_require__(8);
 
-var checkValid = __webpack_require__(13);
+var checkValid = __webpack_require__(14);
 var positionHelper = __webpack_require__(28);
 
 var loadTime = new Date().valueOf();
@@ -6619,7 +6697,7 @@ module.exports = Dilla;
 /* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var checkValid = __webpack_require__(13);
+var checkValid = __webpack_require__(14);
 var memoize = __webpack_require__(8);
 
 var positionHelper = {
@@ -6664,7 +6742,7 @@ module.exports = positionHelper;
 /* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var Stream = __webpack_require__(19)
+var Stream = __webpack_require__(20)
 var Event = __webpack_require__(32)
 
 var inherits = __webpack_require__(12).inherits
@@ -6844,7 +6922,7 @@ function bopperTick(e){
 
 module.exports = Ditty
 
-var Stream = __webpack_require__(19)
+var Stream = __webpack_require__(20)
 var inherits = __webpack_require__(12).inherits
 
 function Ditty(){
@@ -7218,7 +7296,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 /* 35 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(1);
+module.exports = __webpack_require__(0);
 
 
 /***/ }),
@@ -7234,7 +7312,7 @@ module.exports = __webpack_require__(1);
 
 module.exports = PassThrough;
 
-var Transform = __webpack_require__(17);
+var Transform = __webpack_require__(18);
 
 /*<replacement>*/
 var util = __webpack_require__(5);
@@ -7260,7 +7338,7 @@ PassThrough.prototype._transform = function (chunk, encoding, cb) {
 "use strict";
 
 
-var Buffer = __webpack_require__(2).Buffer;
+var Buffer = __webpack_require__(1).Buffer;
 /*<replacement>*/
 var bufferShim = __webpack_require__(7);
 /*</replacement>*/
@@ -7715,81 +7793,6 @@ module.exports = function isBuffer(arg) {
 /***/ (function(module, exports) {
 
 /* (ignored) */
-
-/***/ }),
-/* 47 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _Animal2 = __webpack_require__(21);
-
-var _Animal3 = _interopRequireDefault(_Animal2);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Volodya = function (_Animal) {
-    _inherits(Volodya, _Animal);
-
-    function Volodya(config) {
-        _classCallCheck(this, Volodya);
-
-        var _this = _possibleConstructorReturn(this, (Volodya.__proto__ || Object.getPrototypeOf(Volodya)).call(this, config));
-
-        _this.volodyaActive = false;
-        _this.methronomeObj = config.methronome;
-        _this.methronomeSound = _this.methronomeObj.getSound();
-        _this.methronomeObj.on('volodyastoy', _this.stop.bind(_this));
-        return _this;
-    }
-
-    _createClass(Volodya, [{
-        key: 'play',
-        value: function play() {
-            var _this2 = this;
-
-            if (this.methronomeObj.isPlayed()) {
-                this.methronomeSound.on('step', function () {
-                    if (!_this2.volodyaActive && _this2.htmlElement.checked) {
-                        _this2.sound.play();
-                        _this2.volodyaActive = true;
-                        _this2.emit('start');
-                    }
-                });
-            } else {
-                this.htmlElement.checked = false;
-            }
-        }
-    }, {
-        key: 'stop',
-        value: function stop() {
-            this.volodyaActive = false;
-            this.htmlElement.checked = false;
-            this.methronomeSound.removeListener('step', function () {
-                return false;
-            });
-            this.sound.stop();
-            this.emit('stop');
-        }
-    }]);
-
-    return Volodya;
-}(_Animal3.default);
-
-exports.default = Volodya;
 
 /***/ })
 /******/ ]);

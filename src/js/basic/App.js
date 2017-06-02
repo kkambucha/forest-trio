@@ -2,7 +2,7 @@ import Animal from '../basic/Animal';
 import Volodya from '../basic/Volodya';
 
 class App {
-    constructor() {
+    constructor(genre) {
         let bearElem = document.querySelector('.js-bear-elem'),
             rabbitElem = document.querySelector('.js-rabbit-elem'),
             wolfElem = document.querySelector('.js-wolf-elem'),
@@ -32,7 +32,7 @@ class App {
 
         volodya = new Volodya({
             htmlElement: volodyaElem,
-            sound: '../public/sounds/beat.wav',
+            sound: `../public/sounds/${genre}.wav`,
             loop: true,
             methronome: rabbit
         });

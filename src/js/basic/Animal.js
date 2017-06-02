@@ -6,15 +6,14 @@ class Animal extends EventEmitter {
         super();
         this.htmlElement = config.htmlElement;
 
-        this.htmlElement.addEventListener('click', () => {
-            this.togglePlay();
-        });
+        if(typeof window.ontouchstart === 'undefined'){
+            this.htmlElement.addEventListener('click', this.togglePlay.bind(this));
+        } else{
+            this.htmlElement.addEventListener('touchstart', this.togglePlay.bind(this));
+        }
 
         this.sound = new SoundCreator(config.loop, config.sound);
 
-        this.sound.on('startPlay', () => {
-            this.htmlElement.classList.add('active');
-        });
         this.sound.on('stopPlay', () => {
             this.htmlElement.classList.remove('active');
             this.emit('volodyastoy');
@@ -22,9 +21,11 @@ class Animal extends EventEmitter {
     }
     play() {
         this.sound.play();
+        this.htmlElement.classList.add('active');
     }
     stop() {
         this.sound.stop();
+        this.htmlElement.classList.remove('active');
     }
     togglePlay() {
         if (this.sound.getIsLoop()) {

@@ -8,7 +8,7 @@ class SoundCreator extends EventEmitter {
         this.loop = loop;
         this.isInit = false;
         this.isPlayed = false;
-        this.audioContext = new AudioContext();
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.source = this.audioContext.createBufferSource();
         this.source.connect(this.audioContext.destination);
         this.oldBuffer = null;
@@ -78,10 +78,10 @@ class SoundCreator extends EventEmitter {
         this.emit('startPlay');
         if(this.isInit) {
             this.source.start(0);
-            this.source.addEventListener('ended', () => {
+            this.source.onended = () => {
                 this.isPlayed = false;
                 this.emit('stopPlay');
-            });
+            };
             if(!this.loop) {
                 this.reInitAudio(false);
             } else {
