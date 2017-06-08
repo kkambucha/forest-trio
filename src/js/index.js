@@ -30,6 +30,6 @@ modalBtn.onclick = function() {
 
     modal.style.display = "none";
     appElem.style.display = "block";
-console.log(selectedGenre);
+
     app = new App(selectedGenre);
 };
